@@ -17,12 +17,23 @@ def load_data(filename):
         data = np.array(pd.read_csv(f, header=None))
     return data[:,:-1], data[:,-1]
 
-def plotData(X, y):
-    plt.plot(X, y, 'd', markersize=8, markerfacecolor="lightblue", label="Training data")
+def plotData(X, y, theta=None):
+    plt.plot(X, y, 'd', markersize=8, markerfacecolor="lightblue",
+            label="Training data")
     plt.xlabel("Population of city, 10,000s")
     plt.ylabel("Profit, $10,000s")
     plt.title("Training data")
+    if not theta is None:
+        plt.plot(X, np.dot(add_column_of_ones(X), theta).T[0],
+                 label="Linear regression")
+        plt.legend()
+        plt.title("Training data and computed linear regression\n"
+                  "with parameters $\\theta \\approx [{0[0]:.1f},{0[1]:.1f}]$"
+                  .format(theta.T[0]))
 
+def add_column_of_ones(X):
+    return np.hstack([np.ones((X.shape[0],1)), X])
+            
 def computeCost(X, y, theta):
     """X should have first columnt made of 1s"""
     m = y.shape[0]
@@ -34,12 +45,14 @@ def computeCost(X, y, theta):
 def gradientDescent(X, y, theta, alpha, iterations):
     """y should be vertical vector, that is array of shape (m,1)"""
     m = len(y)
-    J_history = np.empty(iterations)
-    descent_path = np.empty((iterations,theta.shape[0]))
+    J_history = np.empty(iterations+1)
+    descent_path = np.empty((iterations+1,theta.shape[0]))
     for i in range(iterations):
         descent_path[i] = theta.T[0]
-        theta = theta - alpha / m * np.dot(np.dot(X, theta).T - y.T, X).T
         J_history[i] = computeCost(X, y, theta)
+        theta = theta - alpha / m * np.dot(np.dot(X, theta).T - y.T, X).T
+    descent_path[-1] = theta.T[0]
+    J_history[-1] = computeCost(X, y, theta)
     return theta, J_history, descent_path
 
 def featureNormalize(X):
@@ -61,7 +74,7 @@ def predict(x, theta, mu=None, sigma=None):
         mu = np.zeros(len(x))
     if sigma is None:
         sigma = np.ones(len(x))
-    return np.dot(np.hstack([np.ones((1,1)), ((x-mu)/sigma).reshape(1, -1)]), theta)[0,0]
+    return np.dot(add_column_of_ones(((x-mu)/sigma).reshape(1, -1)), theta)[0,0]
 
 def normalEqn(X, y):
     from numpy import dot
@@ -77,50 +90,56 @@ if __name__ == "__main__":
 
     print("Dataset contains", m1, "examples with", n1, "feature(s).")
 
-    print("Plotting data...")
+    print("First 10 examples from the dataset:")
+    print(np.hstack([X1[:10], y1[:10].reshape(-1,1)]))
+    print()
+
+    #print("Plotting data...")
 
     plotData(X1, y1)
     #plt.show()
     
     print("Testing cost function...")
 
-    # add vertical vector as the first column of X1
-    X1a = np.hstack([np.ones((X1.shape[0],1)), X1])
+    # add vertical vector as the first column
+    X1a = add_column_of_ones(X1)
     y1a = y1.reshape(-1,1)
 
-    theta = np.zeros((n1+1,1))
-    J = computeCost(X1a, y1a, theta)
-    print("With theta = {} cost J(theta) = {}".format(theta.T[0], J))
-
-    theta = np.array([[-1], [2]])
-    J = computeCost(X1a, y1a, theta)
-    print("With theta = {} cost J(theta) = {}".format(theta.T[0], J))
+    for theta in [np.zeros((X1a.shape[1],1)), np.array([[-1], [2]])]:
+        J = computeCost(X1a, y1a, theta)
+        print("  for theta = {} the cost J(theta) = {}".format(list(theta.T[0]), J))
 
     print("Running gradient descent...")
 
     alpha = 0.01
     iterations = 1500
-    theta_start = np.zeros((n1+1,1))
-    theta, J_history, descent_path = gradientDescent(X1a, y1a, theta_start, alpha, iterations)
+    theta = np.zeros((X1a.shape[1],1))
+    theta, J_history, descent_path = \
+            gradientDescent(X1a, y1a, theta, alpha, iterations)
+
+    assert list(descent_path[-1]) == list(theta.T[0])
+    assert J_history[-1] == computeCost(X1a, y1a, theta)
 
     print("For alpha = {alpha} after {iterations} iterations of gradient "
-          "descent found theta = {theta}, J(theta) = {J}".format(
+          "descent found:\n"
+          "  theta = {theta}\n"
+          "  J(theta) = {J}"
+          .format(
               theta=theta.T[0],
               J=computeCost(X1a, y1a, theta),
               alpha=alpha,
               iterations=iterations))
-    
-    plt.figure()
-    plotData(X1, y1)
-    plt.plot(X1a[:,1], np.dot(X1a, theta).T[0], label="Linear regression $\\theta = [{:.2f},{:.2f}]$".format(theta.T[0,0], theta.T[0,1]))
-    plt.legend()
-    plt.title("Training data and computed linear regression")
 
+    print("Testing prediction...")
     for population in [3.5, 7]:
-        prediction = np.dot([[1, population]], theta)[0][0]
-        print("For population of {:n} we predict a profit of {}".format(
+        #prediction = np.dot([[1, population]], theta)[0][0]
+        prediction = predict([population], theta)
+        print("  For population of {:n} we predict a profit of ${}".format(
             population*10000,
             prediction*10000))
+    
+    plt.figure()
+    plotData(X1, y1, theta)
 
     print('Visualizing J(theta_0, theta_1)...')
 
@@ -140,23 +159,36 @@ if __name__ == "__main__":
     th0, th1 = np.meshgrid(theta0_vals, theta1_vals)
     plt.gca(projection="3d")
     plt.gca().plot_surface(th0, th1, J_vals, cmap=cm.coolwarm)
+    plt.gca().plot(descent_path[:,0], descent_path[:,1], J_history, "r--",
+                   label="Descent path")
+    plt.gca().plot([descent_path[ 0,0]], [descent_path[ 0,1]], [J_history[ 0]],
+                      color='red', marker='o', label="Starting point")
+    plt.gca().plot([descent_path[-1,0]], [descent_path[-1,1]], [J_history[-1]],
+                      color='red', marker='x', label="End point")
     plt.xlabel(r"$\theta_0$")
     plt.ylabel(r"$\theta_1$")
+    plt.gca().set_zlabel(r"$J(\theta_0,\theta_1)$")
+    plt.title("Cost of univariable linear regression\n"
+              "and computed gradient descent path")
 
     plt.figure()
-    plt.plot(theta_start[0,0], theta_start[1,0], "ro", label="Starting point")
-    plt.plot(descent_path[:,0], descent_path[:,1], "r--", label="Descent path")
     plt.contour(theta0_vals, theta1_vals, J_vals, np.logspace(-2, 3, 20))
+    plt.plot(descent_path[:,0], descent_path[:,1], "r--", label="Descent path")
+    plt.plot(descent_path[0,0], descent_path[0,1], "ro",
+             label="Starting point [{:.1f},{:.1f}]".format(
+                 descent_path[0,0], descent_path[0,1]))
+    plt.plot(descent_path[-1,0], descent_path[-1,1], "rx",
+             label="End point [{:.1f},{:.1f}]".format(
+                 descent_path[-1,0], descent_path[-1,1]))
+    plt.title("Gradient descent for univariable regression\n"
+              "with $\\alpha = {}$ and {} iterations".format(alpha, iterations))
     plt.xlabel(r"$\theta_0$")
     plt.ylabel(r"$\theta_1$")
-    plt.plot(theta[0,0], theta[1,0], "rx", markersize=10, linewidth=2, label="Final point")
-    plt.title("Gradient descent with $\\alpha = {}$ "
-              "for {} iterations".format(alpha, iterations))
     plt.legend()
 
     #plt.show()
-    print()
 
+    print()
     print("Loading second dataset...")
 
     X2, y2 = load_data("ex1data2.txt")
@@ -178,20 +210,20 @@ if __name__ == "__main__":
 
     print("Solving with gradient descent...")
     # add vertical vector of ones as the first column of X1
-    X2a = np.hstack([np.ones((X2n.shape[0],1)), X2n])
+    X2a = add_column_of_ones(X2n)
     y2a = y2.reshape(-1,1)
 
     iterations = 400
     alphas = [1.284, 1, 0.3, 0.1, 0.03, 0.01, 0.003]
-    thetas = {}
+    thetas = dict()
     plt.figure()
     for alpha in alphas:
         theta = np.zeros((X2a.shape[1],1))
-        theta, J_history, _ = \
+        theta, J_history, descent_path = \
                 gradientDescent(X2a, y2a, theta, alpha, iterations)
         thetas[alpha] = theta
-        print(" For alpha = {} after {} iteration found theta = {} with cost = "
-              "{}".format(alpha, iterations, list(theta.T[0]), J_history[-1]))
+        print("  For alpha = {} after {} iteration found theta = {} with cost "
+              "= {}".format(alpha, iterations, list(theta.T[0]), J_history[-1]))
         plt.plot(range(len(J_history)), J_history, label=alpha)
     plt.xlabel("Number of iterations")
     plt.ylabel("Cost of linear regression $J(\\theta)$")
@@ -204,17 +236,17 @@ if __name__ == "__main__":
               "iterations): {}".format(alpha, iterations, list(theta.T[0])))
         print("Predicted price of a 1650 sq-ft, 3 br house (using gradient "
               "descent with alpha = {} and {} iterations): {}".format(alpha,
-                  iterations, predict(np.array([1650, 3]), theta, mu, sigma)))
+                  iterations, predict([1650, 3], theta, mu, sigma)))
 
     print()
     print("Solving with normal equations...")
 
-    X2a = np.hstack([np.ones((X2.shape[0],1)), X2])
+    X2a = add_column_of_ones(X2)
     theta = normalEqn(X2a, y2a)
 
     print("Theta computed from the normal equations:", list(theta.T[0]))
 
     print("Predicted price of a 1650 sq-ft, 3 br house (using normal "
-          "equations):", predict(np.array([1650, 3]), theta))
+          "equations):", predict([1650, 3], theta))
 
     plt.show()

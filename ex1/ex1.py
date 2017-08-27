@@ -168,7 +168,7 @@ if __name__ == "__main__":
     plt.xlabel(r"$\theta_0$")
     plt.ylabel(r"$\theta_1$")
     plt.gca().set_zlabel(r"$J(\theta_0,\theta_1)$")
-    plt.title("Cost of univariable linear regression\n"
+    plt.title("Cost function for univariable linear regression\n"
               "and computed gradient descent path")
 
     plt.figure()
@@ -180,7 +180,7 @@ if __name__ == "__main__":
     plt.plot(descent_path[-1,0], descent_path[-1,1], "rx",
              label="End point [{:.1f},{:.1f}]".format(
                  descent_path[-1,0], descent_path[-1,1]))
-    plt.title("Gradient descent for univariable regression\n"
+    plt.title("Gradient descent for univariable linear regression\n"
               "with $\\alpha = {}$ and {} iterations".format(alpha, iterations))
     plt.xlabel(r"$\theta_0$")
     plt.ylabel(r"$\theta_1$")
@@ -226,8 +226,9 @@ if __name__ == "__main__":
               "= {}".format(alpha, iterations, list(theta.T[0]), J_history[-1]))
         plt.plot(range(len(J_history)), J_history, label=alpha)
     plt.xlabel("Number of iterations")
-    plt.ylabel("Cost of linear regression $J(\\theta)$")
-    plt.title("Rate of gradient descent for various values of $\\alpha$")
+    plt.ylabel("Cost $J(\\theta)$")
+    plt.title("Rate of gradient descent for various values of $\\alpha$\n"
+              "for linear regression")
     plt.legend(title="Value of $\\alpha$:")
 
     for alpha in [0.01, 1]:

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 """
+Machine Learning Online Class - Exercise 1: Linear Regression
 """
 
 import numpy as np

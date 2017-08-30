@@ -5,7 +5,7 @@ Machine Learning Online Class - Exercise 1: Linear Regression
 """
 
 import numpy as np
-import pandas as pd
+import csv
 import matplotlib.pyplot as plt
 from numpy import dot
 from numpy.linalg import pinv
@@ -15,8 +15,12 @@ from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 
 def load_data(filename):
-    with open(filename) as f:
-        data = np.array(pd.read_csv(f, header=None))
+    data = list()
+    with open(filename, newline='') as f:
+        reader = csv.reader(f, quoting=csv.QUOTE_NONNUMERIC)
+        for row in reader:
+            data.append(row)
+    data = np.array(data)
     return data[:,:-1], data[:,-1]
 
 def plotData(X, y, theta=None):

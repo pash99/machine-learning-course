@@ -78,12 +78,28 @@ def featureNormalize(X):
     X_norm = (X - np.tile(mu, (m,1))) / np.tile(sigma, (m,1))
     return X_norm, mu, sigma
 
-def predict(x, theta, mu=None, sigma=None):
+def predict(X, theta, mu=None, sigma=None):
+    X_ndim = np.ndim(X)
+    if X_ndim < 2:
+        # If X is a number or simple list, reshape (and convert) it into
+        # 2-dimensional numpy.array
+        X = array(X, ndmin=2)
     if mu is None:
-        mu = zeros(len(x))
+        mu = zeros(np.shape(X), dtype=int)
+    else:
+        mu = np.tile(mu, (np.shape(X)[0], 1))
     if sigma is None:
-        sigma = ones(len(x))
-    return dot(add_intercept_column(((x-mu) / sigma).reshape(1,-1)), theta)[0,0]
+        sigma = ones(np.shape(X), dtype=int)
+    else:
+        sigma = np.tile(sigma, (np.shape(X)[0], 1))
+    # np.array(X) -- explicitly convert X into numpy.array in case it's a
+    # Python list
+    result = dot(add_intercept_column(((np.array(X)-mu)/sigma)),
+                 np.reshape(theta, (-1,1)))
+    if X_ndim < 2:
+        return result.flatten()[0]
+    else:
+        return result.flatten()
 
 def normalEqn(X, y):
     return dot(dot(pinv(dot(X.T, X)), X.T), y)

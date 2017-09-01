@@ -125,12 +125,17 @@ def plotSurface(theta0_vals, theta1_vals, J_vals, descent_path, J_history):
     plt.title("Mean squared error cost function\n"
               "and computed gradient descent path")
 
-def plotContour(theta0_vals, theta1_vals, J_vals, ax=None):
+def plotContour(theta0_vals, theta1_vals, J_vals, theta_min=None, J_min=None,
+        ax=None):
     if ax is None:
         ax = plt.gca()
     ax.contour(theta0_vals, theta1_vals, J_vals, np.logspace(-2, 3, 20))
     ax.set_xlabel(r"$\theta_0$")
     ax.set_ylabel(r"$\theta_1$")
+    if theta_min is not None:
+        ax.plot(theta_min[0,0], theta_min[1,0], "b+",
+                label="Global minimum"+(" ($J(\\theta) \\approx {:.1f}$)"
+                      .format(J_min) if J_min else ""))
 
 def plotContourPath(descent_path, J_history, ax=None):
     if ax is None:
@@ -188,6 +193,9 @@ if __name__ == "__main__":
     theta, J_history, descent_path = \
         gradientDescent(X1a, y1a, theta, alpha, iterations)
 
+    theta_min = normalEqn(X1a, y1a)
+    J_min = computeCost(X1a, y1a, theta_min)
+
     assert list(descent_path[-1]) == list(theta.flatten())
     assert J_history[-1] == computeCost(X1a, y1a, theta)
 
@@ -230,10 +238,10 @@ if __name__ == "__main__":
     plotSurface(theta0_vals, theta1_vals, J_vals, descent_path, J_history)
 
     plt.figure()
-    plotContour(theta0_vals, theta1_vals, J_vals)
+    plotContour(theta0_vals, theta1_vals, J_vals, theta_min, J_min)
     plotContourPath(descent_path, J_history)
     legend_handles, _ = plt.gca().get_legend_handles_labels()
-    plt.legend()
+    plt.legend(handles=legend_handles[1:]+legend_handles[0:1])
     plt.title("Gradient descent on cost function\n"
               "for {} interations with learning rate $\\alpha = {}$"
               .format(iterations, alpha))

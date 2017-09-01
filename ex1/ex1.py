@@ -22,26 +22,28 @@ def load_data(filename):
     data = array(data)
     return data[:,:-1], data[:,-1]
 
-def plotData(X, y, theta=None):
-    plt.plot(X, y, 'd', markersize=8, markerfacecolor="lightblue",
-             label="Training data")
-    plt.xlabel("Population of city, 10,000s")
-    plt.ylabel("Profit, $10,000s")
-    plt.title("Linear regression: training data")
-    if theta is not None:
-        plt.plot(X, dot(add_intercept_column(X), theta).flatten(),
-                 label="Linear model")
-        plt.legend()
-        plt.title("Training data and estimated linear regression model\n"
-                  "with parameter $\\theta \\approx [{0[0]:.1f},{0[1]:.1f}]$"
-                  .format(theta.flatten()))
+def plotData(X, y, ax=None):
+    if ax is None:
+        ax = plt.gca()
+    ax.plot(X, y, 'd', markersize=8, markerfacecolor="lightblue",
+            label="Training data")
+    ax.set_xlabel("Population of city, 10,000s")
+    ax.set_ylabel("Profit, $10,000s")
+    ax.set_title("Linear regression: training data")
+
+def plotModel(X, theta, ax=None):
+    if ax is None:
+        ax = plt.gca()
+    X_cover = [[np.min(X)], [np.max(X)]]
+    ax.plot(X_cover, dot(add_intercept_column(X_cover), theta),
+            label="Linear model")
 
 def add_intercept_column(X):
     """
     Adds vertical vector of ones as the first column to matrix X to account
     for intercept term theta_0.
     """
-    return np.hstack([ones((X.shape[0], 1)), X])
+    return np.hstack([ones((np.shape(X)[0], 1)), X])
 
 def computeCost(X, y, theta):
     """X should already have an intercept column"""
@@ -170,7 +172,12 @@ if __name__ == "__main__":
               .format(population*10000, prediction*10000))
 
     plt.figure()
-    plotData(X1, y1, theta)
+    plotData(X1, y1)
+    plotModel(X1, theta)
+    plt.legend()
+    plt.title("Training data and estimated linear regression model\n"
+              "with parameter $\\theta \\approx [{0[0]:.1f},{0[1]:.1f}]$"
+              .format(theta.flatten()))
 
     print('Visualizing J(theta_0, theta_1)...')
 

@@ -106,6 +106,43 @@ def predict(X, theta, mu=None, sigma=None):
 def normalEqn(X, y):
     return dot(dot(pinv(dot(X.T, X)), X.T), y)
 
+def plotSurface(theta0_vals, theta1_vals, J_vals, descent_path, J_history):
+    th0, th1 = np.meshgrid(theta0_vals, theta1_vals)
+    plt.gca(projection="3d")
+    plt.gca().plot_surface(th0, th1, J_vals, cmap=matplotlib.cm.coolwarm)
+    plt.gca().plot(descent_path[:,0], descent_path[:,1], J_history, "r--",
+                   label="Descent path")
+    plt.gca().plot([descent_path[0,0]],  [descent_path[0,1]],  [J_history[0]],
+                   color='red', marker='o', label="Starting point")
+    plt.gca().plot([descent_path[-1,0]], [descent_path[-1,1]], [J_history[-1]],
+                   color='red', marker='x', label="End point")
+    #plt.gca().plot([theta_min[0,0]], [theta_min[1,0]],
+    #               [computeCost(X1a, y1a, theta_min)],
+    #               color='yellow', marker='+', label="Global minimum")
+    plt.xlabel(r"$\theta_0$")
+    plt.ylabel(r"$\theta_1$")
+    plt.gca().set_zlabel(r"$J(\theta_0,\theta_1)$")
+    plt.title("Mean squared error cost function\n"
+              "and computed gradient descent path")
+
+def plotContour(theta0_vals, theta1_vals, J_vals, ax=None):
+    if ax is None:
+        ax = plt.gca()
+    ax.contour(theta0_vals, theta1_vals, J_vals, np.logspace(-2, 3, 20))
+    ax.set_xlabel(r"$\theta_0$")
+    ax.set_ylabel(r"$\theta_1$")
+
+def plotContourPath(descent_path, J_history, ax=None):
+    if ax is None:
+        ax = plt.gca()
+    ax.plot(descent_path[0,0], descent_path[0,1], "ro",
+            label="Starting point ($J(\\theta) \\approx {:.1f}$)"
+                  .format(J_history[0]))
+    ax.plot(descent_path[:,0], descent_path[:,1], "r--", label="Descent path")
+    ax.plot(descent_path[-1,0], descent_path[-1,1], "rx",
+            label="End point ($J(\\theta) \\approx {:.1f}$)"
+                  .format(J_history[-1]))
+
 if __name__ == "__main__":
 
     print("Exercise 1: linear regression.")
@@ -183,7 +220,6 @@ if __name__ == "__main__":
 
     theta0_vals = np.linspace(-10, 10, 100)
     theta1_vals = np.linspace(-1, 4, 100)
-
     J_vals = zeros((len(theta0_vals), len(theta1_vals)))
     for i, theta0 in enumerate(theta0_vals):
         for j, theta1 in enumerate(theta1_vals):
@@ -191,35 +227,16 @@ if __name__ == "__main__":
     J_vals = J_vals.T
 
     plt.figure()
-    th0, th1 = np.meshgrid(theta0_vals, theta1_vals)
-    plt.gca(projection="3d")
-    plt.gca().plot_surface(th0, th1, J_vals, cmap=matplotlib.cm.coolwarm)
-    plt.gca().plot(descent_path[:,0], descent_path[:,1], J_history, "r--",
-                   label="Descent path")
-    plt.gca().plot([descent_path[0,0]],  [descent_path[0,1]],  [J_history[0]],
-                   color='red', marker='o', label="Starting point")
-    plt.gca().plot([descent_path[-1,0]], [descent_path[-1,1]], [J_history[-1]],
-                   color='red', marker='x', label="End point")
-    plt.xlabel(r"$\theta_0$")
-    plt.ylabel(r"$\theta_1$")
-    plt.gca().set_zlabel(r"$J(\theta_0,\theta_1)$")
-    plt.title("Mean squared error cost function\n"
-              "and computed gradient descent path")
+    plotSurface(theta0_vals, theta1_vals, J_vals, descent_path, J_history)
 
     plt.figure()
-    plt.contour(theta0_vals, theta1_vals, J_vals, np.logspace(-2, 3, 20))
-    plt.plot(descent_path[0,0], descent_path[0,1], "ro",
-             label="Starting point ($J(\\theta) \\approx {:.1f}$)"
-                   .format(J_history[0]))
-    plt.plot(descent_path[:,0], descent_path[:,1],  "r--",
-             label="Descent path")
-    plt.plot(descent_path[-1,0], descent_path[-1,1], "rx",
-             label="End point ($J(\\theta) \\approx {:.1f}$)"
-                   .format(J_history[-1]))
-    plt.title("Gradient descent on cost function")
-    plt.xlabel(r"$\theta_0$")
-    plt.ylabel(r"$\theta_1$")
+    plotContour(theta0_vals, theta1_vals, J_vals)
+    plotContourPath(descent_path, J_history)
+    legend_handles, _ = plt.gca().get_legend_handles_labels()
     plt.legend()
+    plt.title("Gradient descent on cost function\n"
+              "for {} interations with learning rate $\\alpha = {}$"
+              .format(iterations, alpha))
 
     #plt.show()
 

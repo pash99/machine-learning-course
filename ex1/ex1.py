@@ -10,8 +10,10 @@ import numpy as np
 from numpy import array, dot, zeros, ones
 from numpy.linalg import pinv
 import matplotlib.pyplot as plt
+import matplotlib.animation
 import matplotlib.cm
 from mpl_toolkits.mplot3d import Axes3D
+
 
 def load_data(filename):
     data = list()
@@ -22,6 +24,7 @@ def load_data(filename):
     data = array(data)
     return data[:,:-1], data[:,-1]
 
+
 def plotData(X, y, ax=None):
     if ax is None:
         ax = plt.gca()
@@ -31,12 +34,18 @@ def plotData(X, y, ax=None):
     ax.set_ylabel("Profit, $10,000s")
     ax.set_title("Linear regression: training data")
 
+
 def plotModel(X, theta, ax=None):
     if ax is None:
         ax = plt.gca()
     X_cover = [[np.min(X)], [np.max(X)]]
     ax.plot(X_cover, dot(add_intercept_column(X_cover), theta),
             label="Linear model")
+    plt.legend()
+    plt.title("Training data and estimated linear regression model\n"
+              "with parameter $\\theta \\approx [{0[0]:.1f},{0[1]:.1f}]$"
+              .format(theta.flatten()))
+
 
 def add_intercept_column(X):
     """
@@ -45,6 +54,7 @@ def add_intercept_column(X):
     """
     return np.hstack([ones((np.shape(X)[0], 1)), X])
 
+
 def computeCost(X, y, theta):
     """X should already have an intercept column"""
     m = y.shape[0]
@@ -52,6 +62,7 @@ def computeCost(X, y, theta):
     J = dot(J.T, J)
     J = J / (2*m)
     return J[0][0]
+
 
 def gradientDescent(X, y, theta, alpha, iterations):
     """y should be vertical vector"""
@@ -66,6 +77,7 @@ def gradientDescent(X, y, theta, alpha, iterations):
     J_history[-1] = computeCost(X, y, theta)
     return theta, J_history, descent_path
 
+
 def featureNormalize(X):
     """X doesn't have intercept column"""
     m = X.shape[0]
@@ -79,6 +91,7 @@ def featureNormalize(X):
         #X_norm[:,i] = (X[:,i] - mu[i].T) / sigma[i].T
     X_norm = (X - np.tile(mu, (m,1))) / np.tile(sigma, (m,1))
     return X_norm, mu, sigma
+
 
 def predict(X, theta, mu=None, sigma=None):
     X_ndim = np.ndim(X)
@@ -103,10 +116,13 @@ def predict(X, theta, mu=None, sigma=None):
     else:
         return result.flatten()
 
+
 def normalEqn(X, y):
     return dot(dot(pinv(dot(X.T, X)), X.T), y)
 
-def plotSurface(theta0_vals, theta1_vals, J_vals, descent_path, J_history):
+
+def plotSurface(theta0_vals, theta1_vals, J_vals, descent_path, J_history,
+        theta_min=None, cost_min=None):
     th0, th1 = np.meshgrid(theta0_vals, theta1_vals)
     plt.gca(projection="3d")
     plt.gca().plot_surface(th0, th1, J_vals, cmap=matplotlib.cm.coolwarm)
@@ -116,14 +132,15 @@ def plotSurface(theta0_vals, theta1_vals, J_vals, descent_path, J_history):
                    color='red', marker='o', label="Starting point")
     plt.gca().plot([descent_path[-1,0]], [descent_path[-1,1]], [J_history[-1]],
                    color='red', marker='x', label="End point")
-    #plt.gca().plot([theta_min[0,0]], [theta_min[1,0]],
-    #               [computeCost(X1a, y1a, theta_min)],
-    #               color='yellow', marker='+', label="Global minimum")
+    if theta_min is not None and cost_min is not None:
+        plt.gca().plot(theta_min[0], theta_min[1], [cost_min],
+                       color='yellow', marker='+', label="Global minimum")
     plt.xlabel(r"$\theta_0$")
     plt.ylabel(r"$\theta_1$")
     plt.gca().set_zlabel(r"$J(\theta_0,\theta_1)$")
     plt.title("Mean squared error cost function\n"
               "and computed gradient descent path")
+
 
 def plotContour(theta0_vals, theta1_vals, J_vals, theta_min=None, J_min=None,
         ax=None):
@@ -137,20 +154,105 @@ def plotContour(theta0_vals, theta1_vals, J_vals, theta_min=None, J_min=None,
                 label="Global minimum"+(" ($J(\\theta) \\approx {:.1f}$)"
                       .format(J_min) if J_min else ""))
 
-def plotContourPath(descent_path, J_history, ax=None):
-    if ax is None:
-        ax = plt.gca()
-    ax.plot(descent_path[0,0], descent_path[0,1], "ro",
-            label="Starting point ($J(\\theta) \\approx {:.1f}$)"
-                  .format(J_history[0]))
-    ax.plot(descent_path[:,0], descent_path[:,1], "r--", label="Descent path")
-    ax.plot(descent_path[-1,0], descent_path[-1,1], "rx",
-            label="End point ($J(\\theta) \\approx {:.1f}$)"
-                  .format(J_history[-1]))
+
+def plotContourPath(descent_path, J_history):
+    plt.plot(descent_path[0,0], descent_path[0,1], "ro",
+             label="Starting point ($J(\\theta) \\approx {:.1f}$)"
+                   .format(J_history[0]))
+    plt.plot(descent_path[:,0], descent_path[:,1], "r--", label="Descent path")
+    plt.plot(descent_path[-1,0], descent_path[-1,1], "rx",
+             label="End point ($J(\\theta) \\approx {:.1f}$)"
+                   .format(J_history[-1]))
+    legend_handles, _ = plt.gca().get_legend_handles_labels()
+    plt.legend(handles=legend_handles[1:]+legend_handles[0:1])
+    plt.title("Gradient descent on cost function")
+
+
+def plotAnimation(X, y, duration=20, delay=200, theta_init=None,
+        alpha=0.005, iterations=1500):
+    Xa = add_intercept_column(X)
+    ya = np.reshape(y, (-1,1))
+    if theta_init is None:
+        theta_init = zeros((Xa.shape[1],1))
+    num_of_frames = duration * 1000 // delay
+
+    # Run gradient descent and compute theta
+    theta, J_history, descent_path = \
+        gradientDescent(Xa, ya, theta_init, alpha, iterations)
+    theta_min = normalEqn(Xa, ya)
+    J_min = computeCost(Xa, ya, theta_min)
+
+    theta0_vals = np.linspace(-10, 10, 100)
+    theta1_vals = np.linspace(-1, 4, 100)
+    J_vals = zeros((len(theta0_vals), len(theta1_vals)))
+    for i, theta0 in enumerate(theta0_vals):
+        for j, theta1 in enumerate(theta1_vals):
+            J_vals[i,j] = computeCost(X1a, y1a, array([[theta0], [theta1]]))
+    J_vals = J_vals.T
+
+    X_cover = [[np.min(X)], [np.max(X)]]
+
+    fig = plt.gcf()
+    ax1, ax2, = fig.get_axes()
+    fig.suptitle("Model fitting with gradient descent")
+    lines1, = ax1.plot([], [], color="orange", animated=True,
+                       label="Linear model")
+    lines2, = ax2.plot([], [], "r--", animated=True, label="Descent path")
+    lines3, = ax2.plot([], [], "rx", animated=True,
+                       label="End point ($J(\\theta) \\approx {:.1f}$)"
+                             .format(J_history[-1]))
+    infobox1 = ax1.text(0.60, 0.02, "", transform=ax1.transAxes)
+    infobox2 = ax2.text(0.58, 0.96, "", transform=ax2.transAxes,
+                        verticalalignment="top",
+                        bbox={"facecolor": "white",
+                              "alpha": 0.85,
+                              "edgecolor": "lightgray"})
+
+    def ani_init():
+        plotData(X, y, ax1)
+        ax1.set_title("Linear model")
+        plotContour(theta0_vals, theta1_vals, J_vals, theta_min, J_min, ax2)
+        ax2.plot(descent_path[0,0], descent_path[0,1], "ro",
+                 label="Starting point ($J(\\theta) \\approx {:.1f}$)"
+                       .format(J_history[0]))
+        ax2.set_title("Gradient descent (learning rate $\\alpha = {}$)"
+                      .format(alpha))
+        lines1.set_data(X_cover, predict(X_cover, theta))
+        return lines1, lines2, lines3, infobox1, infobox2,
+
+    def ani_mate(iteration):
+        theta = descent_path[iteration].reshape(-1,1)
+        lines1.set_ydata(predict(X_cover, theta))
+        lines2.set_data(descent_path[:iteration+1,0],
+                        descent_path[:iteration+1,1])
+        infobox1.set_text("$\\theta \\approx "
+                          "[{theta[0]:+.2f},{theta[1]:+.2f}]$"
+                          .format(theta=theta.flatten()))
+        infobox2.set_text("Iteration: {iteration:>4}\n"
+                          "$\\theta \\approx "
+                          "[{theta[0]:+.2f},{theta[1]:+.2f}]$\n"
+                          "$J(\\theta) \\approx {cost:.2f}$"
+                          .format(iteration=iteration, theta=theta.flatten(),
+                                  cost=J_history[iteration]))
+        if iteration == len(descent_path)-1:
+            lines3.set_data(descent_path[-1,0], descent_path[-1,1])
+        return lines1, lines2, lines3, infobox1, infobox2,
+
+    return matplotlib.animation.FuncAnimation(
+        fig,
+        func=ani_mate,
+        init_func=ani_init,
+        frames=(np.round( # speed of descent is not linear
+            np.linspace(0, (len(descent_path)-1)**(1/3), num_of_frames+1)**3)
+            .astype(int)),
+        interval=delay,
+        repeat=False,
+        blit=True)
+
 
 if __name__ == "__main__":
 
-    print("Exercise 1: linear regression.")
+    print("Exercise 1: Linear regression.")
     print("==============================")
     print()
 
@@ -167,7 +269,6 @@ if __name__ == "__main__":
     print()
 
     #print("Plotting data...")
-
     plotData(X1, y1)
     #plt.show()
 
@@ -211,7 +312,6 @@ if __name__ == "__main__":
 
     print("Testing prediction...")
     for population in [3.5, 7]:
-        #prediction = dot([[1, population]], theta)[0][0]
         prediction = predict([population], theta)
         print("  For population of {:n} we predict a profit of ${}"
               .format(population*10000, prediction*10000))
@@ -219,12 +319,8 @@ if __name__ == "__main__":
     plt.figure()
     plotData(X1, y1)
     plotModel(X1, theta)
-    plt.legend()
-    plt.title("Training data and estimated linear regression model\n"
-              "with parameter $\\theta \\approx [{0[0]:.1f},{0[1]:.1f}]$"
-              .format(theta.flatten()))
 
-    print('Visualizing J(theta_0, theta_1)...')
+    #print('Visualizing J(theta_0, theta_1)...')
 
     theta0_vals = np.linspace(-10, 10, 100)
     theta1_vals = np.linspace(-1, 4, 100)
@@ -240,13 +336,14 @@ if __name__ == "__main__":
     plt.figure()
     plotContour(theta0_vals, theta1_vals, J_vals, theta_min, J_min)
     plotContourPath(descent_path, J_history)
-    legend_handles, _ = plt.gca().get_legend_handles_labels()
-    plt.legend(handles=legend_handles[1:]+legend_handles[0:1])
     plt.title("Gradient descent on cost function\n"
               "for {} interations with learning rate $\\alpha = {}$"
               .format(iterations, alpha))
 
-    #plt.show()
+    # Plotting Animation
+    plt.subplots(1, 2, figsize=(10,4.5))
+    ani = plotAnimation(X1, y1, alpha=alpha)
+    #plt.gcf().set_tight_layout(True)
 
     print()
     print("Loading second dataset...")
@@ -305,8 +402,8 @@ if __name__ == "__main__":
               "descent with alpha = {} and {} iterations): {}"
               .format(alpha, iterations, predict([1650, 3], theta, mu, sigma)))
 
-    # Now solve with normal equation and compare with the one computed with
-    # gradient descent
+    # Now solve with normal equation and compare result with the one computed
+    # with gradient descent
     print()
     print("Solving with normal equation...")
 
@@ -318,4 +415,10 @@ if __name__ == "__main__":
     print("Predicted price of a 1650 sq-ft, 3 br house (using normal "
           "equation):", predict([1650, 3], theta))
 
+    print("Plotting data...")
     plt.show()
+
+    #print("Saving animation to file...")
+    #ani.save("Animation_1.mp4", writer="ffmpeg")
+    #ani.save("Animation_1.gif", writer="imagemagick")
+    #ani.save("Animation_1.mng", writer="imagemagick")

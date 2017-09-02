@@ -52,7 +52,12 @@ def add_intercept_column(X):
     Adds vertical vector of ones as the first column to matrix X to account
     for intercept term theta_0.
     """
-    return np.hstack([ones((np.shape(X)[0], 1)), X])
+    assert np.ndim(X) > 0
+    if np.ndim(X) < 2:
+        intercept = ones(1)
+    else:
+        intercept = ones((np.shape(X)[0],1))
+    return np.hstack([intercept, X])
 
 
 def computeCost(X, y, theta):

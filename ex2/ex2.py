@@ -264,4 +264,4 @@ if __name__ == "__main__":
               "for various values of regularization parameter $\\lambda$")
 
     print("Plotting data...")
-    #plt.show()
+    plt.show()

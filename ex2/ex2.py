@@ -6,8 +6,10 @@ Machine Learning Online Class - Exercise 2: Logistic Regression
 
 import numpy as np
 from numpy import array, dot, zeros, ones
-import matplotlib.pyplot as plt
 import csv
+import matplotlib.pyplot as plt
+import matplotlib.cm
+from mpl_toolkits.mplot3d import Axes3D
 
 from scipy.optimize import minimize
 import matplotlib.lines
@@ -103,6 +105,28 @@ def predict(theta, X):
     return p.astype(int)
 
 
+def plotModel(X, y, theta, label1=None, label2=None):
+    assert np.shape(X)[1] == 2
+    X1 = X[:,0]
+    X2 = X[:,1]
+    X1_cover = [np.min(X1), np.max(X1)]
+    X2_cover = [np.min(X2), np.max(X2)]
+    X1_vals = np.linspace(X1_cover[0]-2, X1_cover[1]+2, 101)
+    X2_vals = np.linspace(X2_cover[0]-2, X2_cover[1]+2, 101)
+    h_vals = zeros((len(X1_vals), len(X2_vals)))
+    for i, x1 in enumerate(X1_vals):
+        for j, x2 in enumerate(X2_vals):
+            h_vals[i,j] = \
+                sigmoid(dot(mapFeature(x1, x2, degree=1), theta)[0])
+    h_vals = h_vals.T
+
+    x1, x2 = np.meshgrid(X1_vals, X2_vals)
+    plt.gca(projection="3d")
+    plt.gca().plot_surface(x1, x2, h_vals, cmap=matplotlib.cm.coolwarm)
+    plt.gca().scatter(X1[y == 1], X2[y==1], 1, label=label1)
+    plt.gca().scatter(X1[y == 0], X2[y==0], 0, label=label2)
+
+
 if __name__ == "__main__":
     print("Exercise 2: logistic regression.")
     print("================================")
@@ -172,7 +196,7 @@ if __name__ == "__main__":
     print("Prediction accuracy on the train set: {:.1%} (expected: 89.0%)"
           .format(np.mean(predict(theta_min1, X1) == y1a)))
 
-    print("Plotting decision boundary...")
+    #print("Plotting decision boundary...")
     plt.figure()
     plotData(X1, y1, label1="Admitted", label2="Not admitted")
     plotDecisionBoundary(X1, y1, theta_min1, label="Decision boundary")
@@ -181,6 +205,17 @@ if __name__ == "__main__":
     legend_handles, _ = plt.gca().get_legend_handles_labels()
     plt.legend(handles=legend_handles[1:]+legend_handles[0:1])
     plt.title("Training data and computed decision boundary")
+
+    #print("Plotting logistic model...")
+    plt.figure()
+    plotModel(X1, y1, theta_min1, label1="Exam 1 score", label2="Exam 2 score")
+    plt.xlabel("Exam 1 score")
+    plt.ylabel("Exam 2 score")
+    plt.gca().set_zlabel("$h_\\theta$")
+    plt.title("Logistic model with parameter $\\theta \\approx "
+              "[{theta[0]:.1f}, {theta[1]:.1f}, {theta[2]:.1f}]$"
+              .format(theta=list(theta_min1.flatten())))
+
     #plt.show()
 
     print()

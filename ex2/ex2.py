@@ -31,24 +31,29 @@ def plotData(X, y, label1=None, label2=None):
             edgecolor="g", s=15)
 
 
-def plotDecisionBoundary(X, y, theta, color="blue", alpha=None,
-                         label="Decision boundary"):
-    #axis = plt.axis()
+def plotDecisionBoundary(X, y, theta, color="blue", label="Decision boundary"):
+    X1_min = np.min(X[:,0])
+    X1_max = np.max(X[:,0])
+    X1_margin = (X1_max - X1_min) * 0.1
+    X2_min = np.min(X[:,1])
+    X2_max = np.max(X[:,1])
+    X2_margin = (X2_max - X2_min) * 0.1
     if theta.shape[0] == 3:
-        plot_x = np.array([np.min(X[:,0])-1, np.max(X[:,0])+1])
+        #plot_x = np.array([np.min(X[:,0])-1, np.max(X[:,0])+1])
+        plot_x = np.array([X1_min-X1_margin, X1_max+X1_margin])
         plot_y = (-1) / theta[2,0] * (theta[1,0] * plot_x + theta[0,0])
-        #plt.axis(axis)
         return plt.plot(plot_x, plot_y, color=color, label=label)
     elif theta.shape[0] > 3:
         degree = get_mapFeature_degree(theta.size)
-        u = np.linspace(-1, 1.5, 51)
-        v = u.copy()
+        #u = np.linspace(-1, 1.5, 51)
+        u = np.linspace(X1_min-X1_margin, X1_max+X1_margin, 51)
+        v = np.linspace(X2_min-X2_margin, X2_max+X2_margin, 51)
         z = np.empty((u.size, v.size))
-        for i in range(u.size):
-            for j in range(v.size):
-                z[i,j] = dot(mapFeature(u[i], v[j], degree), theta)
+        for i, ui in enumerate(u):
+            for j, vj in enumerate(v):
+                z[i,j] = dot(mapFeature(ui, vj, degree=degree), theta)
         z = z.T
-        return plt.contour(u, v, z, [0], colors=color, alpha=alpha, label=label)
+        return plt.contour(u, v, z, [0], colors=color, alpha=0.5, label=label)
 
 
 def add_intercept_column(X):
@@ -226,7 +231,7 @@ if __name__ == "__main__":
     #print("Plotting decision boundary...")
     plt.figure()
     plotData(X1, y1, label1="Admitted", label2="Not admitted")
-    plotDecisionBoundary(X1, y1, theta_min1, label="Decision boundary")
+    plotDecisionBoundary(X1, y1, theta_min1)
     plt.xlabel("Exam 1 score")
     plt.ylabel("Exam 2 score")
     legend_handles, _ = plt.gca().get_legend_handles_labels()
@@ -313,7 +318,7 @@ if __name__ == "__main__":
             precision,
             "" if lambda_ != 1 else " (expected approx. 83.1%)"
             ))
-        plotDecisionBoundary(X2, y2, theta, color=color, alpha=0.5)
+        plotDecisionBoundary(X2, y2, theta, color=color)
         legend_handles.append(matplotlib.lines.Line2D([], [], color=color,
             alpha=0.5,
             label="$\\lambda = {}$ (accur. {:.0%})".format(lambda_, precision)))

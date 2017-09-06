@@ -40,12 +40,13 @@ def plotDecisionBoundary(X, y, theta, color="blue", alpha=None,
         #plt.axis(axis)
         return plt.plot(plot_x, plot_y, color=color, label=label)
     elif theta.shape[0] > 3:
+        degree = get_mapFeature_degree(theta.size)
         u = np.linspace(-1, 1.5, 51)
         v = u.copy()
         z = np.empty((u.size, v.size))
         for i in range(u.size):
             for j in range(v.size):
-                z[i,j] = dot(mapFeature(u[i], v[j]), theta)
+                z[i,j] = dot(mapFeature(u[i], v[j], degree), theta)
         z = z.T
         return plt.contour(u, v, z, [0], colors=color, alpha=alpha, label=label)
 
@@ -83,7 +84,14 @@ def costFunction(theta, X, y, lambda_=None, gradFlatten=False):
     return J[0,0], grad
 
 
-def mapFeature(X1, X2, degree=6):
+def mapFeature(X1, X2, degree):
+    """
+    Feature mapping function to polynomial features. Returns a new feature
+    array with more features, comprising of 1, X1, X2, X1**2, X1*X2, X2**2,
+    X1**3, X1**2*X2, X1*X2**2, etc.
+ 
+    Inputs X1, X2 must be the same size.
+    """
     assert np.shape(X1) == np.shape(X2)
     X1 = np.array(X1)
     X2 = np.array(X2)
@@ -95,6 +103,24 @@ def mapFeature(X1, X2, degree=6):
         for j in range(i+1):
             X = np.hstack([X, X1**(i-j) * X2**j])
     return X
+
+
+def get_mapFeature_degree(number_of_columns):
+    """
+    Return the degree with which features in matrix of number_of_columns were
+    mapped using mapFeature function. That is, if
+
+        Xn = mapFeature(X1, X2, n)
+
+    then
+        
+        get_mapFeature_degree(Xn.shape[1]) == n
+
+    Note:
+        num_of_columns = (degree+1) * (degree+2) / 2
+        degree = (sqrt(8*num_of_columns + 1) - 3) / 2
+    """
+    return int(((8*number_of_columns + 1)**(1/2) - 3) / 2)
 
 
 def predict(theta, X):
@@ -114,10 +140,11 @@ def plotModel(X, y, theta, label1=None, label2=None):
     X1_vals = np.linspace(X1_cover[0]-2, X1_cover[1]+2, 101)
     X2_vals = np.linspace(X2_cover[0]-2, X2_cover[1]+2, 101)
     h_vals = zeros((len(X1_vals), len(X2_vals)))
+    degree = get_mapFeature_degree(np.shape(theta)[0])
     for i, x1 in enumerate(X1_vals):
         for j, x2 in enumerate(X2_vals):
             h_vals[i,j] = \
-                sigmoid(dot(mapFeature(x1, x2, degree=1), theta)[0])
+                sigmoid(dot(mapFeature(x1, x2, degree), theta)[0])
     h_vals = h_vals.T
 
     x1, x2 = np.meshgrid(X1_vals, X2_vals)
@@ -238,7 +265,7 @@ if __name__ == "__main__":
     plt.title("Second dataset: microchip quality assurance")
     #plt.show()
 
-    X2a = mapFeature(X2[:,0].reshape(-1,1), X2[:,1].reshape(-1,1))
+    X2a = mapFeature(X2[:,0].reshape(-1,1), X2[:,1].reshape(-1,1), 6)
     y2a = y2.reshape(-1,1)
     m2, n2 = X2a.shape
 

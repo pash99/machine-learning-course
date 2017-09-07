@@ -32,12 +32,13 @@ def plotData(X, y, label1=None, label2=None):
 
 
 def plotDecisionBoundary(X, y, theta, color="blue", label="Decision boundary"):
+    margin_quotient = 0.05
     X1_min = np.min(X[:,0])
     X1_max = np.max(X[:,0])
-    X1_margin = (X1_max - X1_min) * 0.1
+    X1_margin = (X1_max - X1_min) * margin_quotient
     X2_min = np.min(X[:,1])
     X2_max = np.max(X[:,1])
-    X2_margin = (X2_max - X2_min) * 0.1
+    X2_margin = (X2_max - X2_min) * margin_quotient
     if theta.shape[0] == 3:
         #plot_x = np.array([np.min(X[:,0])-1, np.max(X[:,0])+1])
         plot_x = np.array([X1_min-X1_margin, X1_max+X1_margin])
@@ -140,10 +141,15 @@ def plotModel(X, y, theta, label1=None, label2=None):
     assert np.shape(X)[1] == 2
     X1 = X[:,0]
     X2 = X[:,1]
-    X1_cover = [np.min(X1), np.max(X1)]
-    X2_cover = [np.min(X2), np.max(X2)]
-    X1_vals = np.linspace(X1_cover[0]-2, X1_cover[1]+2, 101)
-    X2_vals = np.linspace(X2_cover[0]-2, X2_cover[1]+2, 101)
+    margin_quotient = 0.05
+    X1_min = np.min(X1)
+    X1_max = np.max(X1)
+    X1_margin = (X1_max - X1_min) * margin_quotient
+    X2_min = np.min(X2)
+    X2_max = np.max(X2)
+    X2_margin = (X2_max - X2_min) * margin_quotient
+    X1_vals = np.linspace(X1_min-X1_margin, X1_max+X1_margin, 101)
+    X2_vals = np.linspace(X2_min-X2_margin, X2_max+X2_margin, 101)
     h_vals = zeros((len(X1_vals), len(X2_vals)))
     degree = get_mapFeature_degree(np.shape(theta)[0])
     for i, x1 in enumerate(X1_vals):
@@ -326,7 +332,7 @@ if __name__ == "__main__":
     cost_min2 = thetas[1]["cost_min"]
     plt.xlabel("Microchip test 1")
     plt.ylabel("Microchip test 2")
-    plt.legend(handles=legend_handles)
+    plt.legend(handles=legend_handles, loc="upper right")
     plt.title("Decision boundaries and prediction accuracies\n"
               "for various values of regularization parameter $\\lambda$")
 

@@ -165,8 +165,13 @@ def plotModel(X, y, theta, label1=None, label2=None):
     plt.gca().scatter(X1[y == 0], X2[y==0], 0, label=label2)
 
 
+def print_format_list(list_, format_term=""):
+    return "[{}]".format(", ".join(
+        [("{"+format_term+"}").format(item) for item in list_]))
+
+
 if __name__ == "__main__":
-    print("Exercise 2: logistic regression.")
+    print("Exercise 2: Logistic regression.")
     print("================================")
     print()
 
@@ -201,10 +206,12 @@ if __name__ == "__main__":
             [0.693,0.218],
             [[-0.1000, -12.0092, -11.2628], [0.043, 2.566, 2.647]]):
         cost, grad = costFunction(theta, X1a, y1a)
-        print("For theta = {}:".format(list(theta.flatten())))
-        print("  cost = {} (expected approx. {})".format(cost, expected_cost))
-        print("  gradient = {} (expected approx. {})"
-              .format(list(grad.flatten()), expected_gradient))
+        print("For theta = {}:".format(
+            print_format_list(theta.flatten(), ":.1f")))
+        print("  cost = {:.3f} (expected approx. {})".format(
+            cost, expected_cost))
+        print("  gradient = {} (expected approx. {})".format(
+            print_format_list(grad.flatten(), ":.3f"), expected_gradient))
         #print("Cost at initial theta (zeros):", cost);
         #print("Expected cost (approx): ");
         #print("Gradient at initial theta (zeros):", list(grad.T[0]));
@@ -223,15 +230,15 @@ if __name__ == "__main__":
 
     print("Computed gradient descent using the truncated Newton (TNC) algorithm"
           " (fmin_tnc):")
-    print("  theta =", list(theta_min1.flatten()), "(expected approx. "
-          "[-25.161, 0.206, 0.201]).")
-    print("  cost:", cost_min1, "(expected approx. 0.203)")
+    print("  theta =", print_format_list(theta_min1.flatten(), ":.3f"),
+          "(expected approx. [-25.161, 0.206, 0.201]).")
+    print("  cost: {:.3f}".format(cost_min1), "(expected approx. 0.203)")
 
     print("For a student with scores 45 and 85, we predict an admission "
-          "probability of {} (expected value: 0.775 +/- 0.002)"
+          "probability of {:.3f} (expected value: 0.775 +/- 0.002)."
           .format(sigmoid(dot([1, 45, 85], theta_min1))[0]))
 
-    print("Prediction accuracy on the train set: {:.1%} (expected: 89.0%)"
+    print("Prediction accuracy on the train set: {:.2%} (expected: 89.0%)."
           .format(np.mean(predict(theta_min1, X1) == y1a)))
 
     #print("Plotting decision boundary...")
@@ -282,18 +289,19 @@ if __name__ == "__main__":
 
     print("Testing cost function with regularization parameter:")
     for theta_init, lambda_, exp_cost, exp_grad in zip(
-            [zeros((n2,1)), ones((n2,1))],
+            [zeros((n2,1), dtype=int), ones((n2,1), dtype=int)],
             [1, 10],
             [0.693, 3.16],
             [[0.0085, 0.0188, 0.0001, 0.0503, 0.0115],
              [0.3460, 0.1614, 0.1948, 0.2269, 0.0922]]):
         cost, grad = costFunction(theta_init, X2a, y2a, lambda_)
-        print("For theta = {} and lambda = {}:"
-              .format(list(theta.flatten()), lambda_))
-        print("  J(theta, lambda) = {} (expected approx. {})"
+        print("  for lambda = {} and theta = {}:".format(
+            lambda_, list(theta_init.flatten())))
+        print("    J(theta, lambda) = {:.3f} (expected approx. {})"
               .format(cost, exp_cost))
-        print("  first 5 values of gradient at theta: {} (expected approx. {})"
-              .format(list(grad[:5].flatten()), exp_grad))
+        print("    first 5 values of gradient at theta: {} (expected approx. "
+              "{})".format(
+                  print_format_list(grad[:5].flatten(), ":.4f"), exp_grad))
 
     print("Testing prediction accuracy on train set for various values of "
           "regularization parameter lambda:")
@@ -319,7 +327,7 @@ if __name__ == "__main__":
         thetas[lambda_] = {"theta_min": theta,
                            "cost_min": cost,
                            "precision": precision}
-        print("  lambda = {}: accuracy = {:%}{}".format(
+        print("  lambda = {}: accuracy = {:.1%}{}".format(
             lambda_,
             precision,
             "" if lambda_ != 1 else " (expected approx. 83.1%)"

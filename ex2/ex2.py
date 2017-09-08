@@ -40,13 +40,11 @@ def plotDecisionBoundary(X, y, theta, color="blue", label="Decision boundary"):
     X2_max = np.max(X[:,1])
     X2_margin = (X2_max - X2_min) * margin_quotient
     if theta.shape[0] == 3:
-        #plot_x = np.array([np.min(X[:,0])-1, np.max(X[:,0])+1])
         plot_x = np.array([X1_min-X1_margin, X1_max+X1_margin])
         plot_y = (-1) / theta[2,0] * (theta[1,0] * plot_x + theta[0,0])
         return plt.plot(plot_x, plot_y, color=color, label=label)
     elif theta.shape[0] > 3:
         degree = get_mapFeature_degree(theta.size)
-        #u = np.linspace(-1, 1.5, 51)
         u = np.linspace(X1_min-X1_margin, X1_max+X1_margin, 51)
         v = np.linspace(X2_min-X2_margin, X2_max+X2_margin, 51)
         z = np.empty((u.size, v.size))
@@ -74,33 +72,34 @@ def sigmoid(X):
     return 1 / (1 + np.exp((-1) * X))
 
 
-def costFunction(theta, X, y, lambda_=None, gradFlatten=False):
+def costFunction(theta, X, y, lambda_=0, gradFlatten=False):
     m = y.shape[0]
     theta = theta.reshape((-1,1))
     h = sigmoid(dot(X, theta))
     J = (-1) / m * (dot(y.T, np.log(h)) + dot((1-y.T), np.log(1-h)))
     grad = 1 / m * dot(X.T, (h-y))
-    if lambda_ is not None:
+    if lambda_ != 0:
         J = J + lambda_ / (2*m) * dot(theta[1:].T, theta[1:])
         grad[1:] += lambda_ / m * theta[1:]
     if gradFlatten:
-        # some scalar function minimization solvers require that you return
-        # grad flattened
+        # some function minimization solvers require that you return grad
+        # flattened
         grad = grad.flatten()
     return J[0,0], grad
 
 
 def mapFeature(X1, X2, degree):
     """
-    Feature mapping function to polynomial features. Returns a new feature
-    array with more features, comprising of 1, X1, X2, X1**2, X1*X2, X2**2,
-    X1**3, X1**2*X2, X1*X2**2, etc.
+    Map the features X1 and X2 into all polynomial terms of X1 and X2 up to the
+    power of 'degree'. Returns a new feature array with more features,
+    comprising of 1, X1, X2, X1**2, X1*X2, X2**2, X1**3, X1**2*X2, X1*X2**2,
+    etc.
  
     Inputs X1, X2 must be the same size.
     """
     assert np.shape(X1) == np.shape(X2)
-    X1 = np.array(X1)
-    X2 = np.array(X2)
+    X1 = np.array(X1) # Make sure X1 is numpy array from now on
+    X2 = np.array(X2) # ditto
     if np.ndim(X1) < 2:
         X1 = X1.reshape((-1,1))
         X2 = X2.reshape((-1,1))
@@ -254,15 +253,75 @@ if __name__ == "__main__":
     #print("Plotting logistic model...")
     plt.figure()
     plotModel(X1, y1, theta_min1, label1="Exam 1 score", label2="Exam 2 score")
-    plt.xlabel("Exam 1 score")
-    plt.ylabel("Exam 2 score")
-    plt.gca().set_zlabel("$h_\\theta$")
+    plt.xlabel("Exam 1 score ($x_1$)")
+    plt.ylabel("Exam 2 score ($x_2$)")
+    plt.gca().set_zlabel("$h_\\theta(x_1,x_2)$")
     plt.title("Logistic model with parameter $\\theta \\approx "
               "[{theta[0]:.1f}, {theta[1]:.1f}, {theta[2]:.1f}]$"
               .format(theta=list(theta_min1.flatten())))
 
-    #plt.show()
+    # Let's test and compare logistic regression with polynomial feature mapping
+    # on previous dataset
+    print()
+    print("Let's compute gradient descent for the same dataset but with its "
+          "features mapped to polynomial terms of various degrees and let's "
+          "compare resulting models (regularization parameter alpha is set to "
+          "1):")
+    plt.figure()
+    plotData(X1, y1, label1="Admitted", label2="Not admitted")
+    legend_handles = [] # Will collect here legend handles of individual plots
+    thetas = dict()
+    y1b = y1a
+    for degree, color in zip([2, 3, 4],
+                             ["red", "black", "orange"]):
+        X1b = mapFeature(X1[:,0], X1[:,1], degree)
+        theta_init = zeros((X1b.shape[1],1))
+        result = minimize(
+                x0=theta_init,
+                fun=costFunction,
+                args=(X1b, y1b, 1),
+                method="TNC",
+                jac=True)
+        theta = result.x.reshape(-1,1)
+        cost = result.fun
+        accuracy = np.mean(predict(theta, X1b[:,1:]) == y1b)
+        print("  with features mapped to {degree}-degree polynomial:\n"
+              "     number of features: {features}\n"
+              "     theta: {theta}\n"
+              "     cost: {cost:.3f}\n"
+              "     prediction accuracy: {accuracy:.1%}"
+              .format(degree=degree, features=(degree+1)*(degree+2)//2,
+                  theta=print_format_list(theta.flatten(), ":.3g"), cost=cost,
+                  accuracy=accuracy))
+        plot_label = "Degree = {} (accur. {:.1%})".format(degree, accuracy)
+        plotDecisionBoundary(X1, y1, theta, color=color,
+                label=plot_label)
+        legend_handles.append(matplotlib.lines.Line2D(
+            [],
+            [],
+            color=color,
+            alpha=0.5,
+            label=plot_label))
+        thetas[degree] = {"theta_min": theta,
+                          "cost_min": cost,
+                          "accuracy": accuracy}
+    plt.legend(handles=legend_handles, loc="upper right", framealpha=0.9)
+    plt.xlabel("Exam 1 score")
+    plt.ylabel("Exam 2 score")
+    plt.title("Decision boudaries for various degrees\n"
+              "of polynomial feature mapping")
 
+    plt.figure()
+    plotModel(X1, y1, thetas[3]["theta_min"])
+    plt.xlabel("Exam 1 score ($x_1$)")
+    plt.ylabel("Exam 2 score ($x_2$)")
+    plt.gca().set_zlabel("$h_\\theta(x_1,x_2)$")
+    plt.title("Logistic model fit from dataset with features\n"
+              "mapped to polynomial terms of degree {}\n"
+              "($x = (1,x_1,x_2,x_1^2,x_1 x_2,x_2^2,x_1^3,x_1^2 x_2,x_1 x_2^2,"
+              "x_2^3)$)".format(3))
+
+    # Regularized logistic regression
     print()
     print("Loading second dataset...")
     X2, y2 = load_data("ex2data2.txt")
@@ -303,7 +362,7 @@ if __name__ == "__main__":
               "{})".format(
                   print_format_list(grad[:5].flatten(), ":.4f"), exp_grad))
 
-    print("Testing prediction accuracy on train set for various values of "
+    print("Testing prediction accuracy on training set for various values of "
           "regularization parameter lambda:")
     theta_init = zeros((n2,1))
     lambdas = [0, 1, 10, 100]
@@ -314,14 +373,14 @@ if __name__ == "__main__":
     #legend_handles, _ = plt.gca().get_legend_handles_labels()
     legend_handles = []
     for lambda_, color in zip(lambdas, colors):
-        cost, grad = costFunction(theta_init, X2a, y2a, lambda_)
         result = minimize(
                 x0=theta_init,
                 fun=costFunction,
                 args=(X2a,y2a,lambda_),
                 method="TNC",
                 jac=True)
-        theta = result.x.reshape(n2,-1)
+        #theta = result.x.reshape(n2,-1)
+        theta = result.x.reshape(-1,1)
         cost = result.fun
         precision = np.mean(predict(theta, X2a[:,1:]) == y2a)
         thetas[lambda_] = {"theta_min": theta,
@@ -330,12 +389,17 @@ if __name__ == "__main__":
         print("  lambda = {}: accuracy = {:.1%}{}".format(
             lambda_,
             precision,
-            "" if lambda_ != 1 else " (expected approx. 83.1%)"
+            " (expected approx. 83.1%)" if lambda_ == 1 else ""
             ))
-        plotDecisionBoundary(X2, y2, theta, color=color)
-        legend_handles.append(matplotlib.lines.Line2D([], [], color=color,
+        plot_label = "$\\lambda = {}$ (accur. {:.0%})".format(
+                lambda_, precision)
+        plotDecisionBoundary(X2, y2, theta, color=color, label=plot_label)
+        legend_handles.append(matplotlib.lines.Line2D(
+            [],
+            [],
+            color=color,
             alpha=0.5,
-            label="$\\lambda = {}$ (accur. {:.0%})".format(lambda_, precision)))
+            label=plot_label))
     theta_min2 = thetas[1]["theta_min"]
     cost_min2 = thetas[1]["cost_min"]
     plt.xlabel("Microchip test 1")
